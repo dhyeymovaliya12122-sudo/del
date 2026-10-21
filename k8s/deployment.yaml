@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whatsapp-core-engine
+  namespace: production
+  labels:
+    app.kubernetes.io/name: whatsapp-core-engine
+    app.kubernetes.io/part-of: whatsapp-platform
+    app.kubernetes.io/version: "2.0.0"
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: whatsapp-core-engine
+  template:
+    metadata:
+      labels:
+        app: whatsapp-core-engine
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/api/v1/health"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: core-engine
+          image: ghcr.io/whatsapp-engine/core:2.0.0
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+          ports:
+            - name: http-api
+              containerPort: 3000
+            - name: websocket
+              containerPort: 3001
+          envFrom:
+            - configMapRef:
+                name: whatsapp-engine-config
+            - secretRef:
+                name: whatsapp-engine-secrets
+          resources:
+            requests:
+              cpu: 250m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 2
+          volumeMounts:
+            - name: session-storage
+              mountPath: /app/data/sessions
+            - name: media-storage
+              mountPath: /app/data/media
+      volumes:
+        - name: session-storage
+          persistentVolumeClaim:
+            claimName: whatsapp-sessions-pvc
+        - name: media-storage
+          persistentVolumeClaim:
+            claimName: whatsapp-media-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whatsapp-core-engine-svc
+  namespace: production
+  labels:
+    app: whatsapp-core-engine
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+    - name: websocket
+      port: 3001
+      targetPort: 3001
+  selector:
+    app: whatsapp-core-engine

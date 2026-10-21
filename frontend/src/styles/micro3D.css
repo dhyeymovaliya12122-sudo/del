@@ -1,0 +1,63 @@
+/**
+ * ════════════════════════════════════════════════════════════════════════════════
+ * LIGHTWEIGHT 2D MICRO-INTERACTIONS (3D ANIMATIONS REMOVED FOR MAXIMUM PERFORMANCE)
+ * ════════════════════════════════════════════════════════════════════════════════
+ */
+
+:root {
+  --transition-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ── Lightweight Card Lift (Pure 2D) ── */
+.card-3d-lift {
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card-3d-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+/* ── Lightweight Button Hover (Pure 2D) ── */
+.btn-3d-elastic {
+  position: relative;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-3d-elastic:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.btn-3d-elastic:active {
+  transform: translateY(1px);
+  filter: brightness(0.96);
+}
+
+/* ── Simple 2D Cursor Tilt Placeholder ── */
+.tilt-3d-interactive {
+  position: relative;
+}
+
+/* ── Subtle Sheen (Optional Static Glow) ── */
+.shine-3d-sheen {
+  position: relative;
+}
+
+/* ── Lightweight Page Container (Zero 3D Perspective Overhead) ── */
+.page-3d-container {
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+}
+
+.page-3d-portal-enter,
+.page-3d-portal-exit,
+.page-3d-cube-enter {
+  animation: none !important;
+  transform: none !important;
+  filter: none !important;
+}

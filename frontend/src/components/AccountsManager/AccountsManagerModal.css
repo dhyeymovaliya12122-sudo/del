@@ -1,0 +1,477 @@
+.wa-acc-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(11, 20, 26, 0.85);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.wa-acc-modal {
+  background: #111b21;
+  border: 1px solid #2a3942;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 960px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  animation: waModalFadeIn 0.18s ease-out;
+}
+
+@keyframes waModalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Header */
+.wa-acc-header {
+  padding: 18px 24px;
+  background: #202c33;
+  border-bottom: 1px solid #2a3942;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.wa-acc-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.wa-acc-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #e9edef;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.wa-acc-counter-pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 12px;
+  background: rgba(0, 168, 132, 0.18);
+  color: #00a884;
+  border: 1px solid rgba(0, 168, 132, 0.3);
+}
+
+.wa-acc-close-btn {
+  background: transparent;
+  border: none;
+  color: #aebac1;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.wa-acc-close-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+/* Toolbar */
+.wa-acc-toolbar {
+  padding: 14px 24px;
+  background: #111b21;
+  border-bottom: 1px solid #222e35;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.wa-acc-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #202c33;
+  border: 1px solid #2a3942;
+  border-radius: 8px;
+  padding: 6px 12px;
+  flex: 1;
+  min-width: 240px;
+  max-width: 400px;
+}
+
+.wa-acc-search-input {
+  background: transparent;
+  border: none;
+  color: #e9edef;
+  font-size: 13.5px;
+  outline: none;
+  width: 100%;
+}
+
+.wa-acc-search-input::placeholder {
+  color: #8696a0;
+}
+
+.wa-acc-filter-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.wa-acc-filter-tab {
+  padding: 5px 12px;
+  border-radius: 16px;
+  background: #202c33;
+  border: 1px solid transparent;
+  color: #8696a0;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.wa-acc-filter-tab.active {
+  background: #00a884;
+  color: #111b21;
+  font-weight: 600;
+}
+
+.wa-acc-filter-tab:hover:not(.active) {
+  background: #2a3942;
+  color: #e9edef;
+}
+
+.wa-acc-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #00a884;
+  color: #111b21;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.wa-acc-add-btn:hover {
+  background: #02906f;
+}
+
+/* Add Form Bar */
+.wa-acc-add-form-container {
+  background: #182229;
+  border-bottom: 1px solid #2a3942;
+  padding: 16px 24px;
+  animation: waSlideDown 0.18s ease-out;
+}
+
+@keyframes waSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.wa-acc-add-form {
+  display: flex;
+  gap: 12px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.wa-acc-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.wa-acc-input-group label {
+  font-size: 12px;
+  color: #8696a0;
+  font-weight: 500;
+}
+
+.wa-acc-input {
+  background: #202c33;
+  border: 1px solid #2a3942;
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: #e9edef;
+  font-size: 13px;
+  outline: none;
+}
+
+.wa-acc-input:focus {
+  border-color: #00a884;
+}
+
+/* Body / Cards Grid */
+.wa-acc-body {
+  padding: 20px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.wa-acc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* Card */
+.wa-acc-card {
+  background: #182229;
+  border: 1px solid #2a3942;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.wa-acc-card:hover {
+  border-color: #3b4a54;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.wa-acc-card.current {
+  border-color: #00a884;
+  background: #19272e;
+}
+
+.wa-acc-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.wa-acc-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #2a3942;
+  color: #00a884;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.wa-acc-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.wa-acc-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.wa-acc-name {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #e9edef;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.wa-acc-current-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: #00a884;
+  color: #111b21;
+}
+
+.wa-acc-phone {
+  font-size: 12.5px;
+  color: #8696a0;
+  margin-bottom: 6px;
+}
+
+/* Status Pill */
+.wa-acc-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  width: fit-content;
+}
+
+.wa-acc-status-pill.active {
+  background: rgba(0, 168, 132, 0.15);
+  color: #00a884;
+  border: 1px solid rgba(0, 168, 132, 0.3);
+}
+
+.wa-acc-status-pill.inactive {
+  background: rgba(241, 92, 109, 0.12);
+  color: #f15c6d;
+  border: 1px solid rgba(241, 92, 109, 0.3);
+}
+
+.wa-acc-status-pill.reconnecting {
+  background: rgba(255, 171, 0, 0.12);
+  color: #ffab00;
+  border: 1px solid rgba(255, 171, 0, 0.3);
+}
+
+.wa-acc-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.wa-acc-status-dot.active {
+  background: #00a884;
+  box-shadow: 0 0 8px #00a884;
+}
+
+.wa-acc-status-dot.inactive {
+  background: #f15c6d;
+}
+
+.wa-acc-status-dot.reconnecting {
+  background: #ffab00;
+  animation: pulse 1.2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Stats Row */
+.wa-acc-card-stats {
+  display: flex;
+  gap: 16px;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 12px;
+  color: #8696a0;
+}
+
+.wa-acc-card-stats strong {
+  color: #e9edef;
+  font-weight: 600;
+}
+
+/* Action Buttons */
+.wa-acc-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.wa-acc-btn-primary {
+  flex: 1;
+  background: #00a884;
+  color: #111b21;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s ease;
+}
+
+.wa-acc-btn-primary:hover {
+  background: #02906f;
+}
+
+.wa-acc-btn-secondary {
+  flex: 1;
+  background: #2a3942;
+  color: #e9edef;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.15s ease;
+}
+
+.wa-acc-btn-secondary:hover {
+  background: #3b4a54;
+}
+
+.wa-acc-btn-icon-danger {
+  background: transparent;
+  border: 1px solid rgba(241, 92, 109, 0.25);
+  color: #f15c6d;
+  border-radius: 6px;
+  padding: 7px 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.wa-acc-btn-icon-danger:hover {
+  background: rgba(241, 92, 109, 0.15);
+  border-color: #f15c6d;
+}
+
+/* Empty State */
+.wa-acc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #8696a0;
+  text-align: center;
+}
+
+.wa-acc-empty h4 {
+  font-size: 16px;
+  color: #e9edef;
+  margin-top: 12px;
+  margin-bottom: 6px;
+}

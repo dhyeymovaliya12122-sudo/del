@@ -1,0 +1,37 @@
+# ── Node ──────────────────────────────────────────────────────────────────────
+node_modules/
+dist/
+.npm
+
+# ── Environment files (NEVER commit secrets!) ─────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── [A-4 FIX] Persistent data directory — contains SQLite DB with all chat    ──
+# ── history, encrypted session credentials, media files, and export archives. ──
+# ── Committing this would expose PII and cryptographic material.              ──
+data/
+*.db
+*.sqlite
+
+# ── Ephemeral session files (NEVER commit WhatsApp auth keys!) ────────────────
+/tmp/
+**/wa-sessions/
+**/creds.json
+**/app-state-sync-key.json
+**/*.session
+
+# ── Build output ──────────────────────────────────────────────────────────────
+frontend/dist/
+frontend/.vite/
+
+# ── OS / Editor ───────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+*.tsbuildinfo
+scratch/
+data_backup/

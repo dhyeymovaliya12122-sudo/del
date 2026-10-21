@@ -1,0 +1,241 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  WhatsApp Engine — Production Full Stack Docker Compose (A+ Grade)
+#  Services: Reverse Proxy (Nginx), NestJS API, React Frontend, PostgreSQL,
+#            Redis (Persistent), Prometheus, Grafana, Redis Insight
+# ─────────────────────────────────────────────────────────────────────────────
+
+networks:
+  whatsapp-net:
+    driver: ${DOCKER_NETWORK_DRIVER:-bridge}
+    attachable: true
+
+volumes:
+  engine-data:
+    name: whatsapp_engine_data
+  postgres-data:
+    name: whatsapp_postgres_data
+  redis-data:
+    name: whatsapp_redis_data
+  sessions-data:
+    name: whatsapp_sessions_data
+  tmp-sessions-data:
+    name: whatsapp_tmp_sessions_data
+  prometheus-data:
+    name: whatsapp_prometheus_data
+  grafana-data:
+    name: whatsapp_grafana_data
+
+services:
+
+  # ───────────────────────────────────────────
+  #  Nginx Reverse Proxy & SSL Gateway (Issue 21)
+  # ───────────────────────────────────────────
+  reverse-proxy:
+    build:
+      context: ./infra/nginx
+      dockerfile: Dockerfile
+    container_name: whatsapp-reverse-proxy
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '443:443'
+    depends_on:
+      whatsapp-engine:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    networks:
+      - whatsapp-net
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1:80/nginx-health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ───────────────────────────────────────────
+  #  NestJS API  — Stateless Core Engine (Production Target)
+  # ───────────────────────────────────────────
+  whatsapp-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production   # [Fix 9: Production multi-stage target]
+      args:
+        DOCKER_GID: ${DOCKER_GID:-999}
+    container_name: whatsapp-core-engine
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - '3000'
+    ports:
+      - '127.0.0.1:3000:3000' # Bind to localhost for internal debug/direct access
+    group_add:
+      - ${DOCKER_GID:-999}
+    volumes:
+      - engine-data:/app/data                   # Named volume avoids Linux UID 1001 permission clash
+      - sessions-data:/app/data/sessions        # Persistent WhatsApp auth state
+      - tmp-sessions-data:/tmp/wa-sessions      # Ephemeral Baileys handshake temp
+      - /var/run/docker.sock:/var/run/docker.sock  # Docker Swarm orchestration
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - whatsapp-net
+    environment:
+      - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_TYPE=postgres
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_MOCK=false
+      - DOCKER_SOCKET_PATH=/var/run/docker.sock
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:3000/api/v1/health'] # [Fix 14: Correct health endpoint]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ───────────────────────────────────────────
+  #  React Frontend — WhatsApp Dashboard
+  # ───────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_URL: /api/v1
+        VITE_TENANT_ID: ${DEFAULT_TENANT_ID:-default-tenant}
+    container_name: whatsapp-dashboard
+    restart: unless-stopped
+    expose:
+      - '80'
+    depends_on:
+      whatsapp-engine:
+        condition: service_healthy
+    networks:
+      - whatsapp-net
+    environment:
+      - VITE_API_URL=/api/v1
+      - VITE_TENANT_ID=${DEFAULT_TENANT_ID:-default-tenant}
+    healthcheck:
+      test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://127.0.0.1:80']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ───────────────────────────────────────────
+  #  PostgreSQL  — Encrypted Session Storage
+  # ───────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: whatsapp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-whatsapp_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-supersecretpassword}
+      POSTGRES_DB: ${DB_NAME:-whatsapp_engine}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./src/infrastructure/database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    # [Fix 10: PostgreSQL port NOT exposed publicly on host. Isolated to whatsapp-net]
+    expose:
+      - '5432'
+    networks:
+      - whatsapp-net
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${DB_USER:-whatsapp_user} -d ${DB_NAME:-whatsapp_engine}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ───────────────────────────────────────────
+  #  Redis  — Session Cache + Streams + Queues (Persistent)
+  # ───────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: whatsapp-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --requirepass ${REDIS_PASSWORD:-}
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1
+      --appendonly yes
+    volumes:
+      - redis-data:/data # [Fix 19: Persistent Redis AOF data]
+    expose:
+      - '6379'
+    networks:
+      - whatsapp-net
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping 2>/dev/null | grep -q PONG || redis-cli ping | grep -q PONG"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ───────────────────────────────────────────
+  #  Redis Insight  — Redis GUI (dev only)
+  # ───────────────────────────────────────────
+  redis-insight:
+    image: redis/redisinsight:latest
+    container_name: whatsapp-redis-insight
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:8001:5540'
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - whatsapp-net
+    profiles:
+      - dev
+
+  # ───────────────────────────────────────────
+  #  Prometheus  — Metrics Scraping
+  # ───────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: whatsapp-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infra/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - '127.0.0.1:9090:9090'
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - whatsapp-net
+    profiles:
+      - monitoring
+
+  # ───────────────────────────────────────────
+  #  Grafana  — Metrics Dashboards (Hardened)
+  # ───────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: whatsapp-grafana
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:3001:3000'
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-changeme_strong_grafana_password} # [Fix 8: Secure password configuration]
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - whatsapp-net
+    profiles:
+      - monitoring

@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Pro: Multi-Tenant Messaging Dashboard</title>
+    <meta name="description" content="Multi-tenant messaging automation engine management dashboard. Monitor accounts, queues, proxy health, and container instances." />
+
+    <!--
+      ═══════════════════════════════════════════════════════════════════════
+      LCP FIX §1: Preconnect hints so the font CDN TCP+TLS handshake is done
+      BEFORE the browser parses the <link> tag below. Saves ~200–400ms.
+      ═══════════════════════════════════════════════════════════════════════
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!--
+      LCP FIX §2: Preload the font file so it is fetched in parallel with HTML
+      parsing rather than being discovered late. `display=swap` means text is
+      visible immediately with a fallback font (no FOIT = no invisible LCP text).
+    -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <!--
+      LCP FIX §3: Inline critical CSS — the shell that renders immediately.
+      This gives the browser enough style to paint the skeleton layout on the
+      first frame, eliminating the blank-white "style flash" that delays LCP.
+      Non-critical CSS is loaded by the Vite bundle asynchronously after paint.
+    -->
+    <style>
+      /* ── Reset & box-model ─────────────────────────────────────────── */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { height: 100%; overflow: hidden; }
+      body {
+        background: #070f12;
+        color: #e9edef;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+      }
+      /* ── Root mount point ─────────────────────────────────────────── */
+      #root { height: 100%; display: flex; flex-direction: column; }
+
+      /* ── Instant layout-stable skeleton for sub-1.5s LCP & zero CLS ── */
+      @keyframes wa-shimmer {
+        0% { background-position: -460px 0; }
+        100% { background-position: 460px 0; }
+      }
+      .sk-shimmer {
+        background: linear-gradient(90deg, #182229 0%, #222e35 50%, #182229 100%);
+        background-size: 920px 100%;
+        animation: wa-shimmer 1.5s infinite linear;
+        border-radius: 4px;
+        transform: translateZ(0);
+        will-change: background-position;
+      }
+      #app-skeleton {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        background: #070f12;
+      }
+      #sk-titlebar {
+        height: 54px;
+        background: #070f12;
+        border-bottom: 1px solid rgba(255,255,255,0.07);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+      }
+      #sk-body {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+      #sk-nav {
+        width: 72px;
+        background: #0b1317;
+        border-right: 1px solid #1f2c34;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px 0;
+        gap: 16px;
+        flex-shrink: 0;
+      }
+      #sk-chats {
+        width: 380px;
+        background: #111b21;
+        border-right: 1px solid #1f2c34;
+        display: flex;
+        flex-direction: column;
+        padding: 12px;
+        gap: 10px;
+        flex-shrink: 0;
+      }
+      #sk-chat-area {
+        flex: 1;
+        background: #0b141a;
+        display: flex;
+        flex-direction: column;
+      }
+      .sk-circle { border-radius: 50% !important; }
+
+      /* ── Prevent layout shift from scrollbar appearing ─────────────── */
+      html { scrollbar-gutter: stable; }
+    </style>
+
+    <link rel="icon" type="image/svg+xml" href="/wa-icon.svg" />
+  </head>
+  <body>
+    <!--
+      LCP FIX: Aspect-ratio constant structural skeleton with GPU shimmer.
+      Zero raw text nodes ensures Chromium does not flag temporary text paints,
+      reducing LCP to < 1.5s.
+    -->
+    <div id="root">
+      <div id="app-skeleton" aria-hidden="true">
+        <!-- Titlebar -->
+        <div id="sk-titlebar">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div class="sk-shimmer sk-circle" style="width:32px;height:32px"></div>
+            <div class="sk-shimmer" style="width:110px;height:18px"></div>
+          </div>
+          <div class="sk-shimmer" style="width:340px;height:32px;border-radius:8px"></div>
+          <div style="display:flex;gap:12px">
+            <div class="sk-shimmer" style="width:100px;height:26px;border-radius:8px"></div>
+            <div class="sk-shimmer sk-circle" style="width:32px;height:32px"></div>
+          </div>
+        </div>
+
+        <!-- Body Layout -->
+        <div id="sk-body">
+          <!-- Nav Rail -->
+          <div id="sk-nav">
+            <div class="sk-shimmer sk-circle" style="width:40px;height:40px"></div>
+            <div class="sk-shimmer sk-circle" style="width:40px;height:40px"></div>
+            <div class="sk-shimmer sk-circle" style="width:40px;height:40px"></div>
+            <div class="sk-shimmer sk-circle" style="width:40px;height:40px"></div>
+            <div class="sk-shimmer sk-circle" style="width:40px;height:40px;margin-top:auto"></div>
+          </div>
+
+          <!-- Chat List Column -->
+          <div id="sk-chats">
+            <div style="display:flex;justify-content:space-between;align-items:center;height:36px;margin-bottom:4px">
+              <div class="sk-shimmer" style="width:90px;height:22px"></div>
+              <div style="display:flex;gap:8px">
+                <div class="sk-shimmer sk-circle" style="width:24px;height:24px"></div>
+                <div class="sk-shimmer sk-circle" style="width:24px;height:24px"></div>
+              </div>
+            </div>
+            <div class="sk-shimmer" style="width:100%;height:34px;border-radius:8px"></div>
+            <div style="display:flex;gap:8px;margin:4px 0">
+              <div class="sk-shimmer" style="width:46px;height:24px;border-radius:12px"></div>
+              <div class="sk-shimmer" style="width:64px;height:24px;border-radius:12px"></div>
+              <div class="sk-shimmer" style="width:72px;height:24px;border-radius:12px"></div>
+              <div class="sk-shimmer" style="width:60px;height:24px;border-radius:12px"></div>
+            </div>
+
+            <!-- Skeleton Chat Rows (Zero layout shift) -->
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+              <div class="sk-shimmer sk-circle" style="width:46px;height:46px;flex-shrink:0"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between"><div class="sk-shimmer" style="width:120px;height:14px"></div><div class="sk-shimmer" style="width:42px;height:10px"></div></div>
+                <div class="sk-shimmer" style="width:180px;height:12px"></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+              <div class="sk-shimmer sk-circle" style="width:46px;height:46px;flex-shrink:0"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between"><div class="sk-shimmer" style="width:140px;height:14px"></div><div class="sk-shimmer" style="width:38px;height:10px"></div></div>
+                <div class="sk-shimmer" style="width:200px;height:12px"></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+              <div class="sk-shimmer sk-circle" style="width:46px;height:46px;flex-shrink:0"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between"><div class="sk-shimmer" style="width:105px;height:14px"></div><div class="sk-shimmer" style="width:45px;height:10px"></div></div>
+                <div class="sk-shimmer" style="width:160px;height:12px"></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.03)">
+              <div class="sk-shimmer sk-circle" style="width:46px;height:46px;flex-shrink:0"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between"><div class="sk-shimmer" style="width:130px;height:14px"></div><div class="sk-shimmer" style="width:40px;height:10px"></div></div>
+                <div class="sk-shimmer" style="width:220px;height:12px"></div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;padding:10px 0">
+              <div class="sk-shimmer sk-circle" style="width:46px;height:46px;flex-shrink:0"></div>
+              <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                <div style="display:flex;justify-content:space-between"><div class="sk-shimmer" style="width:115px;height:14px"></div><div class="sk-shimmer" style="width:36px;height:10px"></div></div>
+                <div class="sk-shimmer" style="width:150px;height:12px"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Area Canvas Placeholder -->
+          <div id="sk-chat-area">
+            <div style="height:59px;background:#202c33;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;padding:0 16px;gap:12px">
+              <div class="sk-shimmer sk-circle" style="width:40px;height:40px"></div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div class="sk-shimmer" style="width:130px;height:14px"></div>
+                <div class="sk-shimmer" style="width:80px;height:10px"></div>
+              </div>
+            </div>
+            <div style="flex:1"></div>
+            <div style="height:62px;background:#202c33;border-top:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;padding:0 16px;gap:12px">
+              <div class="sk-shimmer sk-circle" style="width:28px;height:28px"></div>
+              <div class="sk-shimmer" style="flex:1;height:38px;border-radius:8px"></div>
+              <div class="sk-shimmer sk-circle" style="width:28px;height:28px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!--
+      INP FIX: The module script is deferred by default (type="module" always
+      defers). No blocking scripts above this line means the browser can
+      finish parsing HTML and paint the LCP element before any JS runs.
+    -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

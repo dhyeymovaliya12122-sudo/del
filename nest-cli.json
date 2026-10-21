@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "src",
+  "compilerOptions": {
+    "deleteOutDir": false,
+    "watchAssets": false
+  },
+  "watchOptions": {
+    "ignored": [
+      "data/**",
+      "data/sessions/**",
+      "tmp/**",
+      "dist/**",
+      "node_modules/**",
+      "frontend/**"
+    ]
+  }
+}

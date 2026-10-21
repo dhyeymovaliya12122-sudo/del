@@ -1,0 +1,37 @@
+{
+  "name": "telemarketing-dashboard",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Enterprise telemarketing management dashboard",
+  "scripts": {
+    "dev": "vite",
+    "serve": "node serve.js",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "date-fns": "^4.4.0",
+    "dompurify": "^3.2.3",
+    "lucide-react": "^0.441.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.18.4",
+    "recharts": "^2.12.7",
+    "socket.io-client": "^4.7.5",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.0.5",
+    "@types/react": "^18.3.5",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.72.0",
+    "@typescript-eslint/parser": "^8.72.0",
+    "@vitejs/plugin-react": "^4.7.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript": "^5.5.3",
+    "vite": "^6.4.5"
+  }
+}
