@@ -1,4 +1,5 @@
 import { WhatsappWebService } from '../services/whatsapp-web.service';
+import { LogCallDto, SimulateEventDto } from '../dto/calls.dto';
 export declare class WhatsappWebController {
     private readonly whatsappWebService;
     constructor(whatsappWebService: WhatsappWebService);
@@ -127,5 +128,110 @@ export declare class WhatsappWebController {
         totalRedownloaded: number;
         totalFailed: number;
         perAccount: Record<string, any>;
+    }>;
+    getTelemarketingAnalytics(accountId?: string, dateAnchor?: string): Promise<{
+        timestamp: number;
+        refDate: string;
+        periods: {
+            periodName: string;
+            periodDate: string;
+            messages: {
+                total: any;
+                incoming: any;
+                outgoing: any;
+                delivered: any;
+                read: any;
+                sent: any;
+                failed: any;
+                mediaCount: any;
+                textCount: any;
+                uniqueClients: any;
+                deliveryRate: string;
+                readRate: string;
+            };
+            calls: {
+                totalCalls: any;
+                callDuration: string;
+                callDurationSeconds: any;
+                incoming: any;
+                incomingDuration: string;
+                incomingDurationSeconds: any;
+                outgoing: any;
+                outgoingDuration: string;
+                outgoingDurationSeconds: any;
+                missed: any;
+                rejected: any;
+                neverAttended: any;
+                notPickupByClient: any;
+                uniqueClients: any;
+                workingHours: string;
+                connectedCalls: any;
+            };
+        }[];
+        allTime: {
+            periodName: string;
+            periodDate: string;
+            messages: {
+                total: any;
+                incoming: any;
+                outgoing: any;
+                delivered: any;
+                read: any;
+                sent: any;
+                failed: any;
+                mediaCount: any;
+                textCount: any;
+                uniqueClients: any;
+                deliveryRate: string;
+                readRate: string;
+            };
+            calls: {
+                totalCalls: any;
+                callDuration: string;
+                callDurationSeconds: any;
+                incoming: any;
+                incomingDuration: string;
+                incomingDurationSeconds: any;
+                outgoing: any;
+                outgoingDuration: string;
+                outgoingDurationSeconds: any;
+                missed: any;
+                rejected: any;
+                neverAttended: any;
+                notPickupByClient: any;
+                uniqueClients: any;
+                workingHours: string;
+                connectedCalls: any;
+            };
+        };
+    }>;
+    getLiveCalls(accountId?: string, limit?: string): Promise<any>;
+    logCall(body: LogCallDto): Promise<{
+        id: string;
+        accountId: string;
+        callerJid: string;
+        callerName: string;
+        direction: "incoming" | "outgoing";
+        status: "connected" | "missed" | "rejected" | "never_attended" | "not_pickup";
+        duration: number;
+        timestamp: number;
+    }>;
+    simulateLiveEvent(body: SimulateEventDto): Promise<{
+        id: string;
+        accountId: string;
+        callerJid: string;
+        callerName: string;
+        direction: "incoming" | "outgoing";
+        status: "connected" | "missed" | "rejected" | "never_attended" | "not_pickup";
+        duration: number;
+        timestamp: number;
+    } | {
+        id: string;
+        accountId: string;
+        chatJid: string;
+        fromMe: boolean;
+        text: string;
+        timestamp: number;
+        status: string;
     }>;
 }

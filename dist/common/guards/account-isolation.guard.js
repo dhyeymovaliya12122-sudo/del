@@ -50,7 +50,8 @@ let AccountIsolationGuard = AccountIsolationGuard_1 = class AccountIsolationGuar
             this.logger.error(`Database error verifying account ${accountId}: ${err.message}`);
         }
         if (!account) {
-            throw new common_1.BadRequestException(`Account with id "${accountId}" does not exist.`);
+            this.logger.warn(`Account lookup failed for id: ${accountId}`);
+            throw new common_1.BadRequestException('The specified account does not exist or is not accessible.');
         }
         const user = request.user;
         if (!user || user.role === 'SUPER_ADMIN') {

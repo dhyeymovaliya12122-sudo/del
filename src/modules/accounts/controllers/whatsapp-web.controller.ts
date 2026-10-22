@@ -3,12 +3,14 @@ import {
   BadRequestException, UseInterceptors, UploadedFile, Headers,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { SkipThrottle } from '@nestjs/throttler';
+import { SkipThrottle, Throttle } from '@nestjs/throttler';
 import { WhatsappWebService } from '../services/whatsapp-web.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
 import { AccountIsolationGuard } from '../../../common/guards/account-isolation.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
+import { Public } from '../../../common/decorators/public.decorator';
 import { UserRole } from '../../auth/entities/app-user.entity';
+import { LogCallDto, SimulateEventDto } from '../dto/calls.dto';
 
 @SkipThrottle()
 @UseGuards(JwtAuthGuard)
@@ -289,4 +291,54 @@ export class WhatsappWebController {
   async repairMedia(@Body() body: { accountId: string }) {
     return this.whatsappWebService.repairMedia(body.accountId);
   }
+
+  /** GET /api/v1/whatsapp/telemarketing-analytics
+   *  Retrieves live combined messages and call metrics for Today, Yesterday, and Last Week
+   *  [SECURITY FIX] Removed @Public() — now requires JWT authentication
+   */
+  @Get('telemarketing-analytics')
+  async getTelemarketingAnalytics(
+    @Query('accountId') accountId?: string,
+    @Query('dateAnchor') dateAnchor?: string,
+  ) {
+    return this.whatsappWebService.getTelemarketingAnalytics(accountId, dateAnchor);
+  }
+
+  /** GET /api/v1/whatsapp/calls
+   *  Retrieves live call activity logs
+   *  [SECURITY FIX] Removed @Public() — now requires JWT authentication
+   */
+  @Get('calls')
+  async getLiveCalls(
+    @Query('accountId') accountId?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.whatsappWebService.getLiveCallLogs(
+      accountId,
+      limit ? parseInt(limit, 10) : 50,
+    );
+  }
+
+  /** POST /api/v1/whatsapp/calls
+   *  Logs a live or manual call event
+   *  [SECURITY FIX] Removed @Public(), added rate limit + accountId guard
+   */
+  @Post('calls')
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  async logCall(@Body() body: LogCallDto) {
+    return this.whatsappWebService.logCall(body.accountId, body);
+  }
+
+  /** POST /api/v1/whatsapp/analytics/simulate
+   *  Simulates a live event (message or call) for instant real-time verification
+   *  [SECURITY FIX] Restricted to SUPER_ADMIN only — dev/debug tool, not production feature
+   */
+  @Roles(UserRole.SUPER_ADMIN)
+  @Post('analytics/simulate')
+  @HttpCode(HttpStatus.OK)
+  async simulateLiveEvent(@Body() body: SimulateEventDto) {
+    return this.whatsappWebService.simulateLiveEvent(body.accountId, body.type || 'call');
+  }
 }
+

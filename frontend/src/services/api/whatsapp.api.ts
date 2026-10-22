@@ -197,4 +197,70 @@ export const whatsappWebApi = {
         totalFailed: number;
       }>('/whatsapp/media/repair', { accountId })
       .then((r) => r.data),
+
+  getTelemarketingAnalytics: (accountId?: string, dateAnchor?: string) =>
+    api
+      .get<{
+        timestamp: number;
+        refDate: string;
+        periods: Array<{
+          periodName: string;
+          periodDate: string;
+          messages: {
+            total: number;
+            incoming: number;
+            outgoing: number;
+            delivered: number;
+            read: number;
+            sent: number;
+            failed: number;
+            mediaCount: number;
+            textCount: number;
+            uniqueClients: number;
+            deliveryRate: string;
+            readRate: string;
+          };
+          calls: {
+            totalCalls: number;
+            callDuration: string;
+            callDurationSeconds: number;
+            incoming: number;
+            incomingDuration: string;
+            incomingDurationSeconds: number;
+            outgoing: number;
+            outgoingDuration: string;
+            outgoingDurationSeconds: number;
+            missed: number;
+            rejected: number;
+            neverAttended: number;
+            notPickupByClient: number;
+            uniqueClients: number;
+            workingHours: string;
+            connectedCalls: number;
+          };
+        }>;
+        allTime?: any;
+      }>('/whatsapp/telemarketing-analytics', { params: { accountId, dateAnchor } })
+      .then((r) => r.data),
+
+  getLiveCalls: (accountId?: string, limit = 50) =>
+    api
+      .get<Array<{
+        id: string;
+        account_id: string;
+        caller_jid: string;
+        caller_name?: string;
+        direction: 'incoming' | 'outgoing';
+        status: 'connected' | 'missed' | 'rejected' | 'never_attended' | 'not_pickup';
+        duration: number;
+        timestamp: number;
+        created_at: string;
+      }>>('/whatsapp/calls', { params: { accountId, limit } })
+      .then((r) => r.data),
+
+  simulateLiveEvent: (accountId: string, type: 'call' | 'message') =>
+    api
+      .post<any>('/whatsapp/analytics/simulate', { accountId, type })
+      .then((r) => r.data),
 };
+

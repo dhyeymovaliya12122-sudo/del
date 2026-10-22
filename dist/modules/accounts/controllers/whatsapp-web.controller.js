@@ -21,6 +21,7 @@ const jwt_auth_guard_1 = require("../../../common/guards/jwt-auth.guard");
 const account_isolation_guard_1 = require("../../../common/guards/account-isolation.guard");
 const roles_decorator_1 = require("../../../common/decorators/roles.decorator");
 const app_user_entity_1 = require("../../auth/entities/app-user.entity");
+const calls_dto_1 = require("../dto/calls.dto");
 let WhatsappWebController = class WhatsappWebController {
     constructor(whatsappWebService) {
         this.whatsappWebService = whatsappWebService;
@@ -117,6 +118,18 @@ let WhatsappWebController = class WhatsappWebController {
     }
     async repairMedia(body) {
         return this.whatsappWebService.repairMedia(body.accountId);
+    }
+    async getTelemarketingAnalytics(accountId, dateAnchor) {
+        return this.whatsappWebService.getTelemarketingAnalytics(accountId, dateAnchor);
+    }
+    async getLiveCalls(accountId, limit) {
+        return this.whatsappWebService.getLiveCallLogs(accountId, limit ? parseInt(limit, 10) : 50);
+    }
+    async logCall(body) {
+        return this.whatsappWebService.logCall(body.accountId, body);
+    }
+    async simulateLiveEvent(body) {
+        return this.whatsappWebService.simulateLiveEvent(body.accountId, body.type || 'call');
     }
 };
 exports.WhatsappWebController = WhatsappWebController;
@@ -315,6 +328,40 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], WhatsappWebController.prototype, "repairMedia", null);
+__decorate([
+    (0, common_1.Get)('telemarketing-analytics'),
+    __param(0, (0, common_1.Query)('accountId')),
+    __param(1, (0, common_1.Query)('dateAnchor')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], WhatsappWebController.prototype, "getTelemarketingAnalytics", null);
+__decorate([
+    (0, common_1.Get)('calls'),
+    __param(0, (0, common_1.Query)('accountId')),
+    __param(1, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", Promise)
+], WhatsappWebController.prototype, "getLiveCalls", null);
+__decorate([
+    (0, common_1.Post)('calls'),
+    (0, throttler_1.Throttle)({ default: { limit: 30, ttl: 60_000 } }),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [calls_dto_1.LogCallDto]),
+    __metadata("design:returntype", Promise)
+], WhatsappWebController.prototype, "logCall", null);
+__decorate([
+    (0, roles_decorator_1.Roles)(app_user_entity_1.UserRole.SUPER_ADMIN),
+    (0, common_1.Post)('analytics/simulate'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [calls_dto_1.SimulateEventDto]),
+    __metadata("design:returntype", Promise)
+], WhatsappWebController.prototype, "simulateLiveEvent", null);
 exports.WhatsappWebController = WhatsappWebController = __decorate([
     (0, throttler_1.SkipThrottle)(),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

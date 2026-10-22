@@ -25,6 +25,11 @@ export class JwtAuthGuard implements CanActivate {
     const authHeader = request.headers.authorization;
     let token = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : undefined;
     if (!token && request.query?.token) {
+      // [SECURITY] Token-in-query-string is deprecated — only allow in development
+      const isProd = process.env.NODE_ENV === 'production';
+      if (isProd) {
+        throw new UnauthorizedException('Token via query parameter is not allowed in production. Use Authorization header or cookie.');
+      }
       token = (request.query.token as string).trim();
     }
     if (!token && request.cookies?.token) {

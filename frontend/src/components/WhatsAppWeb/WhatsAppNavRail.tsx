@@ -1,122 +1,122 @@
-import React, { useState, useEffect } from 'react';
-import {
-  LayoutDashboard, FolderTree, SlidersHorizontal, Database, Shield,
-  Users, Settings, ChevronDown, ChevronRight, Crown, ArrowRight,
-  ShieldCheck, BarChart2, Bot, Send, FileText, Cloud, Plus,
-  Smartphone, MessageSquare
-} from 'lucide-react';
+  import React, { useState, useEffect } from 'react';
+  import {
+    LayoutDashboard, FolderTree, SlidersHorizontal, Database, Shield,
+    Users, Settings, ChevronDown, ChevronRight, Crown, ArrowRight,
+    ShieldCheck, BarChart2, Bot, Send, FileText, Cloud, Plus,
+    Smartphone, MessageSquare
+  } from 'lucide-react';
 
-interface WhatsAppNavRailProps {
-  activeTab: string;
-  onSelectTab: (tab: any) => void;
-  unreadCount?: number;
-  userName?: string;
-  userRole?: 'SUPER_ADMIN' | 'ADMIN';
-  onOpenUpgrade?: () => void;
-  onOpenSuperAdmin?: () => void;
-  onOpenSettings?: () => void;
-  onLogout?: () => void;
-}
-
-export default function WhatsAppNavRail({
-  activeTab,
-  onSelectTab,
-  unreadCount = 0,
-  userName = 'Super Admin',
-  userRole = 'SUPER_ADMIN',
-  onOpenUpgrade,
-  onOpenSuperAdmin,
-  onOpenSettings,
-  onLogout,
-}: WhatsAppNavRailProps) {
-  // Accordion open state for submenus
-  const [openSubmenu, setOpenSubmenu] = useState<string | null>(
-    activeTab === 'whatsapp' ? 'whatsapp' :
-    activeTab === 'chatbot' ? 'chatbot' :
-    (activeTab === 'optout' || activeTab === 'compliance') ? 'compliance' :
-    (activeTab === 'migration' || activeTab === 'accounts') ? 'migration' :
-    activeTab === 'verification' ? 'verification' :
-    activeTab === 'templates' ? 'templates' :
-    (activeTab === 'contacts' || activeTab === 'contacts-import' || activeTab === 'contacts-export') ? 'contacts' : null
-  );
-
-  useEffect(() => {
-    if (activeTab === 'whatsapp') {
-      setOpenSubmenu('whatsapp');
-    } else if (activeTab === 'chatbot') {
-      setOpenSubmenu('chatbot');
-    } else if (activeTab === 'optout' || activeTab === 'compliance') {
-      setOpenSubmenu('compliance');
-    } else if (activeTab === 'migration') {
-      setOpenSubmenu('migration');
-    } else if (activeTab === 'verification') {
-      setOpenSubmenu('verification');
-    } else if (activeTab === 'templates') {
-      setOpenSubmenu('templates');
-    } else if (activeTab === 'contacts' || activeTab === 'contacts-import' || activeTab === 'contacts-export') {
-      setOpenSubmenu('contacts');
-    }
-  }, [activeTab]);
-
-  const toggleSubmenu = (id: string, defaultActionTab?: string) => {
-    if (openSubmenu === id) {
-      setOpenSubmenu(null);
-    } else {
-      setOpenSubmenu(id);
-      if (defaultActionTab) {
-        onSelectTab(defaultActionTab);
-      }
-    }
-  };
-
-  // Primary Navigation Items Matching Reference Designs with Zero Extraneous Buttons
-  interface NavItem {
-    id: string;
-    label: string;
-    icon: React.ReactNode;
-    hasChevron: boolean;
-    chevronType?: 'down' | 'right';
-    onClick: () => void;
-    active: boolean;
-    subitems?: { id: string; label: string; tab: string }[];
+  interface WhatsAppNavRailProps {
+    activeTab: string;
+    onSelectTab: (tab: any) => void;
+    unreadCount?: number;
+    userName?: string;
+    userRole?: 'SUPER_ADMIN' | 'ADMIN';
+    onOpenUpgrade?: () => void;
+    onOpenSuperAdmin?: () => void;
+    onOpenSettings?: () => void;
+    onLogout?: () => void;
   }
 
-  const baseNavItems: NavItem[] = [
-    {
-      id: 'chats',
-      label: 'Chats',
-      icon: <MessageSquare size={17} />,
-      hasChevron: false,
-      onClick: () => {
+  export default function WhatsAppNavRail({
+    activeTab,
+    onSelectTab,
+    unreadCount = 0,
+    userName = 'Super Admin',
+    userRole = 'SUPER_ADMIN',
+    onOpenUpgrade,
+    onOpenSuperAdmin,
+    onOpenSettings,
+    onLogout,
+  }: WhatsAppNavRailProps) {
+    // Accordion open state for submenus
+    const [openSubmenu, setOpenSubmenu] = useState<string | null>(
+      activeTab === 'whatsapp' ? 'whatsapp' :
+      activeTab === 'chatbot' ? 'chatbot' :
+      (activeTab === 'optout' || activeTab === 'compliance') ? 'compliance' :
+      (activeTab === 'migration' || activeTab === 'accounts') ? 'migration' :
+      activeTab === 'verification' ? 'verification' :
+      activeTab === 'templates' ? 'templates' :
+      (activeTab === 'contacts' || activeTab === 'contacts-import' || activeTab === 'contacts-export') ? 'contacts' : null
+    );
+
+    useEffect(() => {
+      if (activeTab === 'whatsapp') {
+        setOpenSubmenu('whatsapp');
+      } else if (activeTab === 'chatbot') {
+        setOpenSubmenu('chatbot');
+      } else if (activeTab === 'optout' || activeTab === 'compliance') {
+        setOpenSubmenu('compliance');
+      } else if (activeTab === 'migration') {
+        setOpenSubmenu('migration');
+      } else if (activeTab === 'verification') {
+        setOpenSubmenu('verification');
+      } else if (activeTab === 'templates') {
+        setOpenSubmenu('templates');
+      } else if (activeTab === 'contacts' || activeTab === 'contacts-import' || activeTab === 'contacts-export') {
+        setOpenSubmenu('contacts');
+      }
+    }, [activeTab]);
+
+    const toggleSubmenu = (id: string, defaultActionTab?: string) => {
+      if (openSubmenu === id) {
         setOpenSubmenu(null);
-        onSelectTab('chats');
+      } else {
+        setOpenSubmenu(id);
+        if (defaultActionTab) {
+          onSelectTab(defaultActionTab);
+        }
+      }
+    };
+
+    // Primary Navigation Items Matching Reference Designs with Zero Extraneous Buttons
+    interface NavItem {
+      id: string;
+      label: string;
+      icon: React.ReactNode;
+      hasChevron: boolean;
+      chevronType?: 'down' | 'right';
+      onClick: () => void;
+      active: boolean;
+      subitems?: { id: string; label: string; tab: string }[];
+    }
+
+    const baseNavItems: NavItem[] = [
+      {
+        id: 'chats',
+        label: 'Chats',
+        icon: <MessageSquare size={17} />,
+        hasChevron: false,
+        onClick: () => {
+          setOpenSubmenu(null);
+          onSelectTab('chats');
+        },
+        active: activeTab === 'chats',
       },
-      active: activeTab === 'chats',
-    },
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: <LayoutDashboard size={17} />,
-      hasChevron: false,
-      onClick: () => {
-        setOpenSubmenu(null);
-        onSelectTab('campaigns');
+      {
+        id: 'dashboard',
+        label: 'Dashboard',
+        icon: <LayoutDashboard size={17} />,
+        hasChevron: false,
+        onClick: () => {
+          setOpenSubmenu(null);
+          onSelectTab('campaigns');
+        },
+        active: activeTab === 'dashboard' || activeTab === 'campaigns',
       },
-      active: activeTab === 'dashboard' || activeTab === 'campaigns',
-    },
-    {
-      id: 'organization',
-      label: 'Organization',
-      icon: <FolderTree size={17} />,
-      hasChevron: true,
-      chevronType: 'down',
-      onClick: () => toggleSubmenu('organization', 'organization'),
-      active: activeTab === 'organization',
-      subitems: [
-        { id: 'super-admin-ctrl', label: 'Control Center', tab: 'organization' },
-      ],
-    },
-    {
+      {
+        id: 'organization',
+        label: 'Organization',
+        icon: <FolderTree size={17} />,
+        hasChevron: true,
+        chevronType: 'down',
+        onClick: () => toggleSubmenu('organization', 'organization'),
+        active: activeTab === 'organization',
+        subitems: [
+          { id: 'super-admin-ctrl', label: 'Control Center', tab: 'organization' },
+        ],
+      },
+      {
       id: 'accounts',
       label: 'Accounts',
       icon: <SlidersHorizontal size={17} />,

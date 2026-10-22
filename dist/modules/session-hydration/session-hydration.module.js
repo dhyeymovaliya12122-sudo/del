@@ -15,6 +15,7 @@ const whatsapp_account_entity_1 = require("./entities/whatsapp-account.entity");
 const whatsapp_chat_entity_1 = require("./entities/whatsapp-chat.entity");
 const whatsapp_contact_entity_1 = require("./entities/whatsapp-contact.entity");
 const whatsapp_message_entity_1 = require("./entities/whatsapp-message.entity");
+const whatsapp_call_entity_1 = require("./entities/whatsapp-call.entity");
 const user_account_access_entity_1 = require("../auth/entities/user-account-access.entity");
 const app_user_entity_1 = require("../auth/entities/app-user.entity");
 const session_crypto_service_1 = require("./services/session-crypto.service");
@@ -41,6 +42,7 @@ exports.SessionHydrationModule = SessionHydrationModule = __decorate([
                 whatsapp_chat_entity_1.WhatsappChatEntity,
                 whatsapp_contact_entity_1.WhatsappContactEntity,
                 whatsapp_message_entity_1.WhatsappMessageEntity,
+                whatsapp_call_entity_1.WhatsappCallEntity,
                 user_account_access_entity_1.UserAccountAccessEntity,
                 app_user_entity_1.AppUserEntity,
             ]),

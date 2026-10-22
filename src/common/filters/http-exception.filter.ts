@@ -58,11 +58,18 @@ export class GlobalHttpExceptionFilter implements ExceptionFilter {
       exception instanceof Error ? exception.stack : undefined,
     );
 
-    // In production, suppress sensitive internal details for 500 errors
-    const clientMessage =
+    // In production, suppress sensitive internal details for 500 errors.
+    // In dev/test environments, sanitize direct OS file paths to prevent filesystem disclosure.
+    let clientMessage =
       isProd && status >= HttpStatus.INTERNAL_SERVER_ERROR
         ? 'An internal server error occurred.'
         : errorMessage;
+
+    if (!isProd && typeof clientMessage === 'string') {
+      // Strip out local absolute file paths (Windows / Unix)
+      clientMessage = clientMessage.replace(/[A-Za-z]:\\[\w\\\.-]+/g, '[redacted_path]');
+      clientMessage = clientMessage.replace(/(?:\/[a-zA-Z0-9_\.-]+){2,}/g, '[redacted_path]');
+    }
 
     response.status(status).json({
       statusCode: status,

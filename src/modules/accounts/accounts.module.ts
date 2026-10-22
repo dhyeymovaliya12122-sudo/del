@@ -11,6 +11,7 @@ import { WhatsappAccountEntity } from '../session-hydration/entities/whatsapp-ac
 import { WhatsappChatEntity } from '../session-hydration/entities/whatsapp-chat.entity';
 import { WhatsappContactEntity } from '../session-hydration/entities/whatsapp-contact.entity';
 import { WhatsappMessageEntity } from '../session-hydration/entities/whatsapp-message.entity';
+import { WhatsappCallEntity } from '../session-hydration/entities/whatsapp-call.entity';
 import { ProxyPoolEntity } from '../proxy-binding/entities/proxy-pool.entity';
 import { ProxyCircuitBreakerEntity } from '../proxy-circuit-breaker/entities/proxy-circuit-breaker.entity';
 import { SessionAuthEntity } from '../session-hydration/entities/session-auth.entity';
@@ -37,6 +38,7 @@ import { AccountIsolationGuard } from '../../common/guards/account-isolation.gua
       WhatsappChatEntity,
       WhatsappContactEntity,
       WhatsappMessageEntity,
+      WhatsappCallEntity,
       SessionAuthEntity,
       ProxyPoolEntity,
       ProxyCircuitBreakerEntity,

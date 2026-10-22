@@ -34,6 +34,10 @@ let JwtAuthGuard = class JwtAuthGuard {
         const authHeader = request.headers.authorization;
         let token = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : undefined;
         if (!token && request.query?.token) {
+            const isProd = process.env.NODE_ENV === 'production';
+            if (isProd) {
+                throw new common_1.UnauthorizedException('Token via query parameter is not allowed in production. Use Authorization header or cookie.');
+            }
             token = request.query.token.trim();
         }
         if (!token && request.cookies?.token) {

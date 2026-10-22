@@ -13,6 +13,7 @@ const whatsapp_account_entity_1 = require("../session-hydration/entities/whatsap
 const whatsapp_chat_entity_1 = require("../session-hydration/entities/whatsapp-chat.entity");
 const whatsapp_contact_entity_1 = require("../session-hydration/entities/whatsapp-contact.entity");
 const whatsapp_message_entity_1 = require("../session-hydration/entities/whatsapp-message.entity");
+const whatsapp_call_entity_1 = require("../session-hydration/entities/whatsapp-call.entity");
 const proxy_pool_entity_1 = require("../proxy-binding/entities/proxy-pool.entity");
 const proxy_circuit_breaker_entity_1 = require("../proxy-circuit-breaker/entities/proxy-circuit-breaker.entity");
 const session_auth_entity_1 = require("../session-hydration/entities/session-auth.entity");
@@ -42,6 +43,7 @@ exports.AccountsModule = AccountsModule = __decorate([
                 whatsapp_chat_entity_1.WhatsappChatEntity,
                 whatsapp_contact_entity_1.WhatsappContactEntity,
                 whatsapp_message_entity_1.WhatsappMessageEntity,
+                whatsapp_call_entity_1.WhatsappCallEntity,
                 session_auth_entity_1.SessionAuthEntity,
                 proxy_pool_entity_1.ProxyPoolEntity,
                 proxy_circuit_breaker_entity_1.ProxyCircuitBreakerEntity,

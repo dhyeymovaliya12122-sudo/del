@@ -814,6 +814,7 @@ export default function App() {
               activeSidebarItem="dashboard"
               totalAccountsCount={accounts.length}
               totalContactsCount={contacts.length}
+              accountId={activeAccount?.id || accounts[0]?.id}
             />
           )}
             {/* ── 2. Instance Manager View Matching Design 8 ── */}

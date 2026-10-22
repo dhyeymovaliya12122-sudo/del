@@ -9,12 +9,25 @@ const baileys_client_factory_1 = require("./modules/session-hydration/factories/
 const session_hydration_service_1 = require("./modules/session-hydration/services/session-hydration.service");
 const http_exception_filter_1 = require("./common/filters/http-exception.filter");
 const logging_interceptor_1 = require("./common/interceptors/logging.interceptor");
+let uncaughtExceptionCount = 0;
+const UNCAUGHT_EXCEPTION_THRESHOLD = 5;
 process.on('unhandledRejection', (reason) => {
     const msg = reason instanceof Error ? reason.message : String(reason);
-    console.warn(`[Process] Suppressed unhandledRejection (Baileys async timeout/reconnect): ${msg}`);
+    const isBaileysTransient = /timed out|connection closed|stream:error|DisconnectReason|QR refs attempts/i.test(msg);
+    if (isBaileysTransient) {
+        console.warn(`[Process] Suppressed Baileys transient rejection: ${msg}`);
+    }
+    else {
+        console.error(`[Process] ⚠️ Unhandled rejection (non-Baileys): ${msg}`, reason instanceof Error ? reason.stack : '');
+    }
 });
 process.on('uncaughtException', (err) => {
-    console.warn(`[Process] Suppressed uncaughtException: ${err.message}`);
+    uncaughtExceptionCount++;
+    console.error(`[Process] 🚨 uncaughtException #${uncaughtExceptionCount}: ${err.message}`, err.stack);
+    if (uncaughtExceptionCount >= UNCAUGHT_EXCEPTION_THRESHOLD) {
+        console.error(`[Process] 💀 ${UNCAUGHT_EXCEPTION_THRESHOLD} uncaught exceptions reached — forcing process exit for safety.`);
+        process.exit(1);
+    }
 });
 async function bootstrap() {
     console.log('🚀 Bootstrapping NestJS WhatsApp Server...');
@@ -58,8 +71,8 @@ async function bootstrap() {
         res.redirect(frontendUrl);
     });
     const { json, urlencoded } = await Promise.resolve().then(() => require('express'));
-    app.use(json({ limit: '50mb' }));
-    app.use(urlencoded({ limit: '50mb', extended: true }));
+    app.use(json({ limit: '10mb' }));
+    app.use(urlencoded({ limit: '10mb', extended: true }));
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
         forbidNonWhitelisted: true,

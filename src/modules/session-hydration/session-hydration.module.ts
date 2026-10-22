@@ -18,6 +18,7 @@ import { WhatsappAccountEntity } from './entities/whatsapp-account.entity';
 import { WhatsappChatEntity } from './entities/whatsapp-chat.entity';
 import { WhatsappContactEntity } from './entities/whatsapp-contact.entity';
 import { WhatsappMessageEntity } from './entities/whatsapp-message.entity';
+import { WhatsappCallEntity } from './entities/whatsapp-call.entity';
 import { UserAccountAccessEntity } from '../auth/entities/user-account-access.entity';
 import { AppUserEntity } from '../auth/entities/app-user.entity';
 import { SessionCryptoService } from './services/session-crypto.service';
@@ -41,6 +42,7 @@ import { RealtimeGatewayModule } from '../realtime-gateway/realtime-gateway.modu
       WhatsappChatEntity,
       WhatsappContactEntity,
       WhatsappMessageEntity,
+      WhatsappCallEntity,
       UserAccountAccessEntity,
       AppUserEntity,
     ]),

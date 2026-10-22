@@ -13,15 +13,31 @@ import { SessionHydrationService } from './modules/session-hydration/services/se
 import { GlobalHttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 
+// Track uncaught exception count for circuit-breaker style crash protection
+let uncaughtExceptionCount = 0;
+const UNCAUGHT_EXCEPTION_THRESHOLD = 5;
+
 // Suppress transient Baileys socket reconnect/timeout rejections so Node process never crashes
 process.on('unhandledRejection', (reason: any) => {
   const msg = reason instanceof Error ? reason.message : String(reason);
-  console.warn(`[Process] Suppressed unhandledRejection (Baileys async timeout/reconnect): ${msg}`);
+  // Baileys-specific transient errors that are safe to suppress
+  const isBaileysTransient = /timed out|connection closed|stream:error|DisconnectReason|QR refs attempts/i.test(msg);
+  if (isBaileysTransient) {
+    console.warn(`[Process] Suppressed Baileys transient rejection: ${msg}`);
+  } else {
+    console.error(`[Process] ⚠️ Unhandled rejection (non-Baileys): ${msg}`, reason instanceof Error ? reason.stack : '');
+  }
 });
 
 process.on('uncaughtException', (err: Error) => {
-  console.warn(`[Process] Suppressed uncaughtException: ${err.message}`);
+  uncaughtExceptionCount++;
+  console.error(`[Process] 🚨 uncaughtException #${uncaughtExceptionCount}: ${err.message}`, err.stack);
+  if (uncaughtExceptionCount >= UNCAUGHT_EXCEPTION_THRESHOLD) {
+    console.error(`[Process] 💀 ${UNCAUGHT_EXCEPTION_THRESHOLD} uncaught exceptions reached — forcing process exit for safety.`);
+    process.exit(1);
+  }
 });
+
 
 async function bootstrap() {
   console.log('🚀 Bootstrapping NestJS WhatsApp Server...');
@@ -83,10 +99,10 @@ async function bootstrap() {
     res.redirect(frontendUrl);
   });
 
-  // ── Body parser limit for media (images, videos, documents up to 50MB) ───
+  // ── Body parser limit (10MB for JSON; file uploads use multer's own 50MB limit) ───
   const { json, urlencoded } = await import('express');
-  app.use(json({ limit: '50mb' }));
-  app.use(urlencoded({ limit: '50mb', extended: true }));
+  app.use(json({ limit: '10mb' }));
+  app.use(urlencoded({ limit: '10mb', extended: true }));
 
   // ── DTO validation pipeline ──────────────────────────────────────────────
   app.useGlobalPipes(

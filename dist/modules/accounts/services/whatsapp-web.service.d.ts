@@ -5,6 +5,7 @@ import { WhatsappChatEntity } from '../../session-hydration/entities/whatsapp-ch
 import { WhatsappContactEntity } from '../../session-hydration/entities/whatsapp-contact.entity';
 import { WhatsappMessageEntity } from '../../session-hydration/entities/whatsapp-message.entity';
 import { WhatsappAccountEntity } from '../../session-hydration/entities/whatsapp-account.entity';
+import { WhatsappCallEntity } from '../../session-hydration/entities/whatsapp-call.entity';
 import { BaileysClientFactory } from '../../session-hydration/factories/baileys-client.factory';
 import { SessionHydrationService } from '../../session-hydration/services/session-hydration.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -13,12 +14,13 @@ export declare class WhatsappWebService implements OnModuleInit {
     private readonly contactRepo;
     private readonly messageRepo;
     private readonly accountRepo;
-    private readonly baileysClientFactory;
-    private readonly sessionHydrationService;
+    private readonly callRepo?;
+    private readonly baileysClientFactory?;
+    private readonly sessionHydrationService?;
     private readonly redis?;
     private readonly eventEmitter?;
     private readonly logger;
-    constructor(chatRepo: Repository<WhatsappChatEntity>, contactRepo: Repository<WhatsappContactEntity>, messageRepo: Repository<WhatsappMessageEntity>, accountRepo: Repository<WhatsappAccountEntity>, baileysClientFactory: BaileysClientFactory, sessionHydrationService: SessionHydrationService, redis?: Redis, eventEmitter?: EventEmitter2);
+    constructor(chatRepo: Repository<WhatsappChatEntity>, contactRepo: Repository<WhatsappContactEntity>, messageRepo: Repository<WhatsappMessageEntity>, accountRepo: Repository<WhatsappAccountEntity>, callRepo?: Repository<WhatsappCallEntity>, baileysClientFactory?: BaileysClientFactory, sessionHydrationService?: SessionHydrationService, redis?: Redis, eventEmitter?: EventEmitter2);
     onModuleInit(): Promise<void>;
     private syncedLidAccounts;
     private chatUpdateQueue;
@@ -113,5 +115,110 @@ export declare class WhatsappWebService implements OnModuleInit {
         totalRedownloaded: number;
         totalFailed: number;
         perAccount: Record<string, any>;
+    }>;
+    getTelemarketingAnalytics(accountId?: string, dateAnchor?: string): Promise<{
+        timestamp: number;
+        refDate: string;
+        periods: {
+            periodName: string;
+            periodDate: string;
+            messages: {
+                total: any;
+                incoming: any;
+                outgoing: any;
+                delivered: any;
+                read: any;
+                sent: any;
+                failed: any;
+                mediaCount: any;
+                textCount: any;
+                uniqueClients: any;
+                deliveryRate: string;
+                readRate: string;
+            };
+            calls: {
+                totalCalls: any;
+                callDuration: string;
+                callDurationSeconds: any;
+                incoming: any;
+                incomingDuration: string;
+                incomingDurationSeconds: any;
+                outgoing: any;
+                outgoingDuration: string;
+                outgoingDurationSeconds: any;
+                missed: any;
+                rejected: any;
+                neverAttended: any;
+                notPickupByClient: any;
+                uniqueClients: any;
+                workingHours: string;
+                connectedCalls: any;
+            };
+        }[];
+        allTime: {
+            periodName: string;
+            periodDate: string;
+            messages: {
+                total: any;
+                incoming: any;
+                outgoing: any;
+                delivered: any;
+                read: any;
+                sent: any;
+                failed: any;
+                mediaCount: any;
+                textCount: any;
+                uniqueClients: any;
+                deliveryRate: string;
+                readRate: string;
+            };
+            calls: {
+                totalCalls: any;
+                callDuration: string;
+                callDurationSeconds: any;
+                incoming: any;
+                incomingDuration: string;
+                incomingDurationSeconds: any;
+                outgoing: any;
+                outgoingDuration: string;
+                outgoingDurationSeconds: any;
+                missed: any;
+                rejected: any;
+                neverAttended: any;
+                notPickupByClient: any;
+                uniqueClients: any;
+                workingHours: string;
+                connectedCalls: any;
+            };
+        };
+    }>;
+    getLiveCallLogs(accountId?: string, limit?: number): Promise<any>;
+    logCall(accountId: string, callData: Partial<WhatsappCallEntity>): Promise<{
+        id: string;
+        accountId: string;
+        callerJid: string;
+        callerName: string;
+        direction: "incoming" | "outgoing";
+        status: "connected" | "missed" | "rejected" | "never_attended" | "not_pickup";
+        duration: number;
+        timestamp: number;
+    }>;
+    simulateLiveEvent(accountId: string, type: 'call' | 'message'): Promise<{
+        id: string;
+        accountId: string;
+        callerJid: string;
+        callerName: string;
+        direction: "incoming" | "outgoing";
+        status: "connected" | "missed" | "rejected" | "never_attended" | "not_pickup";
+        duration: number;
+        timestamp: number;
+    } | {
+        id: string;
+        accountId: string;
+        chatJid: string;
+        fromMe: boolean;
+        text: string;
+        timestamp: number;
+        status: string;
     }>;
 }

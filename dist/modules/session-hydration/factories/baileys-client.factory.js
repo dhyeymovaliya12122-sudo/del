@@ -887,6 +887,36 @@ let BaileysClientFactory = BaileysClientFactory_1 = class BaileysClientFactory {
                                 messageId: keyId,
                                 status: statusStr,
                             });
+                            this.broadcast(tenantId, accountId, 'whatsapp:analytics_update', { type: 'message', accountId });
+                        }
+                    }
+                });
+                socket.ev.on('call', async (callEvents) => {
+                    for (const call of callEvents) {
+                        try {
+                            const callerJid = call.from || call.chatId || '';
+                            const status = call.status === 'offer' ? 'connected' : call.status === 'timeout' ? 'missed' : call.status === 'reject' ? 'rejected' : 'connected';
+                            const newCall = {
+                                id: call.id || `call_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+                                accountId,
+                                callerJid,
+                                callerName: call.from ? (call.from.split('@')[0]) : 'Client',
+                                direction: call.fromMe ? 'outgoing' : 'incoming',
+                                status: status,
+                                duration: typeof call.duration === 'number' ? call.duration : 0,
+                                isVideo: !!call.isVideo,
+                                isGroup: !!call.isGroup,
+                                timestamp: typeof call.date === 'number' ? call.date : Date.now(),
+                            };
+                            await this.messageRepo.query(`
+            INSERT INTO whatsapp_calls (id, account_id, caller_jid, caller_name, direction, status, duration, is_video, is_group, timestamp, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime(? / 1000, 'unixepoch'))
+          `, [newCall.id, accountId, callerJid, newCall.callerName, newCall.direction, newCall.status, newCall.duration, newCall.isVideo ? 1 : 0, newCall.isGroup ? 1 : 0, newCall.timestamp, newCall.timestamp]).catch(() => null);
+                            this.broadcast(tenantId, accountId, 'whatsapp:call_new', newCall);
+                            this.broadcast(tenantId, accountId, 'whatsapp:analytics_update', { type: 'call', accountId });
+                        }
+                        catch (err) {
+                            this.logger.debug(`Error processing call event: ${err.message}`);
                         }
                     }
                 });

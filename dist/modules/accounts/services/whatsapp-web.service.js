@@ -25,16 +25,18 @@ const whatsapp_chat_entity_1 = require("../../session-hydration/entities/whatsap
 const whatsapp_contact_entity_1 = require("../../session-hydration/entities/whatsapp-contact.entity");
 const whatsapp_message_entity_1 = require("../../session-hydration/entities/whatsapp-message.entity");
 const whatsapp_account_entity_1 = require("../../session-hydration/entities/whatsapp-account.entity");
+const whatsapp_call_entity_1 = require("../../session-hydration/entities/whatsapp-call.entity");
 const baileys_client_factory_1 = require("../../session-hydration/factories/baileys-client.factory");
 const session_hydration_service_1 = require("../../session-hydration/services/session-hydration.service");
 const event_emitter_1 = require("@nestjs/event-emitter");
 const contact_resolver_util_1 = require("../utils/contact-resolver.util");
 let WhatsappWebService = WhatsappWebService_1 = class WhatsappWebService {
-    constructor(chatRepo, contactRepo, messageRepo, accountRepo, baileysClientFactory, sessionHydrationService, redis, eventEmitter) {
+    constructor(chatRepo, contactRepo, messageRepo, accountRepo, callRepo, baileysClientFactory, sessionHydrationService, redis, eventEmitter) {
         this.chatRepo = chatRepo;
         this.contactRepo = contactRepo;
         this.messageRepo = messageRepo;
         this.accountRepo = accountRepo;
+        this.callRepo = callRepo;
         this.baileysClientFactory = baileysClientFactory;
         this.sessionHydrationService = sessionHydrationService;
         this.redis = redis;
@@ -1025,6 +1027,319 @@ let WhatsappWebService = WhatsappWebService_1 = class WhatsappWebService {
             perAccount: results,
         };
     }
+    async getTelemarketingAnalytics(accountId, dateAnchor) {
+        const isAll = !accountId || accountId === 'all';
+        const refDate = dateAnchor ? new Date(dateAnchor) : new Date();
+        const todayStart = new Date(refDate.getFullYear(), refDate.getMonth(), refDate.getDate(), 0, 0, 0, 0).getTime();
+        const todayEnd = todayStart + 86400000 - 1;
+        const yesterdayStart = todayStart - 86400000;
+        const yesterdayEnd = todayStart - 1;
+        const lastWeekStart = todayStart - 7 * 86400000;
+        const lastWeekEnd = todayEnd;
+        const allTimeStart = 0;
+        const allTimeEnd = todayEnd + 86400000;
+        const queryPeriod = async (startMs, endMs, periodName, dateLabel) => {
+            let msgSql = `
+        SELECT
+          COUNT(*) as total,
+          SUM(CASE WHEN (from_me = 0 OR from_me = '0' OR from_me = 'false' OR from_me IS FALSE) THEN 1 ELSE 0 END) as incoming,
+          SUM(CASE WHEN (from_me = 1 OR from_me = '1' OR from_me = 'true' OR from_me IS TRUE) THEN 1 ELSE 0 END) as outgoing,
+          SUM(CASE WHEN status = 'delivered' THEN 1 ELSE 0 END) as delivered,
+          SUM(CASE WHEN status = 'read' THEN 1 ELSE 0 END) as read,
+          SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END) as sent,
+          SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed,
+          SUM(CASE WHEN (media_type IS NOT NULL AND media_type != '') THEN 1 ELSE 0 END) as mediaCount,
+          SUM(CASE WHEN (media_type IS NULL OR media_type = '') THEN 1 ELSE 0 END) as textCount,
+          COUNT(DISTINCT chat_jid) as uniqueClients
+        FROM whatsapp_messages
+        WHERE timestamp >= ? AND timestamp <= ?
+      `;
+            const msgParams = [startMs, endMs];
+            if (!isAll) {
+                msgSql += ` AND account_id = ?`;
+                msgParams.push(accountId);
+            }
+            let msgResult = { total: 0, incoming: 0, outgoing: 0, delivered: 0, read: 0, sent: 0, failed: 0, mediaCount: 0, textCount: 0, uniqueClients: 0 };
+            try {
+                const rows = await this.messageRepo.query(msgSql, msgParams);
+                if (rows && rows[0]) {
+                    msgResult = {
+                        total: Number(rows[0].total || 0),
+                        incoming: Number(rows[0].incoming || 0),
+                        outgoing: Number(rows[0].outgoing || 0),
+                        delivered: Number(rows[0].delivered || 0),
+                        read: Number(rows[0].read || 0),
+                        sent: Number(rows[0].sent || 0),
+                        failed: Number(rows[0].failed || 0),
+                        mediaCount: Number(rows[0].mediaCount || 0),
+                        textCount: Number(rows[0].textCount || 0),
+                        uniqueClients: Number(rows[0].uniqueClients || 0),
+                    };
+                }
+            }
+            catch (err) {
+                this.logger.debug(`Error aggregating messages for ${periodName}: ${err.message}`);
+            }
+            const totalOut = msgResult.outgoing || 1;
+            const totalDeliv = msgResult.delivered || msgResult.outgoing || 1;
+            const deliveryRate = msgResult.outgoing > 0
+                ? `${Math.min(100, Math.round(((msgResult.delivered + msgResult.read) / totalOut) * 100))}%`
+                : '100%';
+            const readRate = (msgResult.delivered + msgResult.read) > 0
+                ? `${Math.min(100, Math.round((msgResult.read / totalDeliv) * 100))}%`
+                : '0%';
+            let callSql = `
+        SELECT
+          COUNT(*) as totalCalls,
+          COALESCE(SUM(duration), 0) as totalDuration,
+          SUM(CASE WHEN direction = 'incoming' THEN 1 ELSE 0 END) as incoming,
+          COALESCE(SUM(CASE WHEN direction = 'incoming' THEN duration ELSE 0 END), 0) as incomingDuration,
+          SUM(CASE WHEN direction = 'outgoing' THEN 1 ELSE 0 END) as outgoing,
+          COALESCE(SUM(CASE WHEN direction = 'outgoing' THEN duration ELSE 0 END), 0) as outgoingDuration,
+          SUM(CASE WHEN status = 'missed' THEN 1 ELSE 0 END) as missed,
+          SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+          SUM(CASE WHEN status = 'never_attended' THEN 1 ELSE 0 END) as neverAttended,
+          SUM(CASE WHEN status = 'not_pickup' THEN 1 ELSE 0 END) as notPickupByClient,
+          SUM(CASE WHEN status = 'connected' THEN 1 ELSE 0 END) as connectedCalls,
+          COUNT(DISTINCT caller_jid) as uniqueClients
+        FROM whatsapp_calls
+        WHERE timestamp >= ? AND timestamp <= ?
+      `;
+            const callParams = [startMs, endMs];
+            if (!isAll) {
+                callSql += ` AND account_id = ?`;
+                callParams.push(accountId);
+            }
+            let callResult = {
+                totalCalls: 0,
+                totalDuration: 0,
+                incoming: 0,
+                incomingDuration: 0,
+                outgoing: 0,
+                outgoingDuration: 0,
+                missed: 0,
+                rejected: 0,
+                neverAttended: 0,
+                notPickupByClient: 0,
+                connectedCalls: 0,
+                uniqueClients: 0,
+            };
+            try {
+                const rows = await this.messageRepo.query(callSql, callParams);
+                if (rows && rows[0]) {
+                    callResult = {
+                        totalCalls: Number(rows[0].totalCalls || 0),
+                        totalDuration: Number(rows[0].totalDuration || 0),
+                        incoming: Number(rows[0].incoming || 0),
+                        incomingDuration: Number(rows[0].incomingDuration || 0),
+                        outgoing: Number(rows[0].outgoing || 0),
+                        outgoingDuration: Number(rows[0].outgoingDuration || 0),
+                        missed: Number(rows[0].missed || 0),
+                        rejected: Number(rows[0].rejected || 0),
+                        neverAttended: Number(rows[0].neverAttended || 0),
+                        notPickupByClient: Number(rows[0].notPickupByClient || 0),
+                        connectedCalls: Number(rows[0].connectedCalls || 0),
+                        uniqueClients: Number(rows[0].uniqueClients || 0),
+                    };
+                }
+            }
+            catch (err) {
+                this.logger.debug(`Error aggregating calls for ${periodName}: ${err.message}`);
+            }
+            const totalCallsCount = callResult.totalCalls;
+            const totalDurSec = callResult.totalDuration;
+            const workingHoursSec = Math.max(totalDurSec, totalCallsCount * 90);
+            const formatDuration = (sec) => {
+                if (!sec || isNaN(sec) || sec <= 0)
+                    return '0h 0m 0s';
+                const h = Math.floor(sec / 3600);
+                const m = Math.floor((sec % 3600) / 60);
+                const s = Math.floor(sec % 60);
+                return `${h}h ${m}m ${s}s`;
+            };
+            return {
+                periodName,
+                periodDate: dateLabel,
+                messages: {
+                    total: msgResult.total,
+                    incoming: msgResult.incoming,
+                    outgoing: msgResult.outgoing,
+                    delivered: msgResult.delivered,
+                    read: msgResult.read,
+                    sent: msgResult.sent,
+                    failed: msgResult.failed,
+                    mediaCount: msgResult.mediaCount,
+                    textCount: msgResult.textCount,
+                    uniqueClients: msgResult.uniqueClients,
+                    deliveryRate,
+                    readRate,
+                },
+                calls: {
+                    totalCalls: callResult.totalCalls,
+                    callDuration: formatDuration(callResult.totalDuration),
+                    callDurationSeconds: callResult.totalDuration,
+                    incoming: callResult.incoming,
+                    incomingDuration: formatDuration(callResult.incomingDuration),
+                    incomingDurationSeconds: callResult.incomingDuration,
+                    outgoing: callResult.outgoing,
+                    outgoingDuration: formatDuration(callResult.outgoingDuration),
+                    outgoingDurationSeconds: callResult.outgoingDuration,
+                    missed: callResult.missed,
+                    rejected: callResult.rejected,
+                    neverAttended: callResult.neverAttended,
+                    notPickupByClient: callResult.notPickupByClient,
+                    uniqueClients: callResult.uniqueClients,
+                    workingHours: formatDuration(workingHoursSec),
+                    connectedCalls: callResult.connectedCalls,
+                },
+            };
+        };
+        const formatDateStr = (d) => {
+            const day = String(d.getDate()).padStart(2, '0');
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
+        };
+        const yDate = new Date(yesterdayStart);
+        const lwDate = new Date(lastWeekStart);
+        const [todayData, yesterdayData, lastWeekData, allTimeData] = await Promise.all([
+            queryPeriod(todayStart, todayEnd, 'Today', formatDateStr(refDate)),
+            queryPeriod(yesterdayStart, yesterdayEnd, 'Yesterday', formatDateStr(yDate)),
+            queryPeriod(lastWeekStart, lastWeekEnd, 'Last Week', `${formatDateStr(lwDate).slice(0, 6)} to ${formatDateStr(refDate).slice(0, 6)} ${refDate.getFullYear()}`),
+            queryPeriod(allTimeStart, allTimeEnd, 'All Time', 'Full Live Database'),
+        ]);
+        return {
+            timestamp: Date.now(),
+            refDate: refDate.toISOString(),
+            periods: [todayData, yesterdayData, lastWeekData],
+            allTime: allTimeData,
+        };
+    }
+    async getLiveCallLogs(accountId, limit = 50) {
+        const isAll = !accountId || accountId === 'all';
+        let sql = `
+      SELECT id, account_id, caller_jid, caller_name, direction, status, duration, is_video, timestamp, created_at
+      FROM whatsapp_calls
+    `;
+        const params = [];
+        if (!isAll) {
+            sql += ` WHERE account_id = ?`;
+            params.push(accountId);
+        }
+        sql += ` ORDER BY timestamp DESC LIMIT ?`;
+        params.push(limit);
+        try {
+            const rows = await this.messageRepo.query(sql, params);
+            return rows || [];
+        }
+        catch {
+            return [];
+        }
+    }
+    async logCall(accountId, callData) {
+        const callId = callData.id || `call_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+        const callerJid = callData.callerJid || 'client@s.whatsapp.net';
+        const callerName = callData.callerName || (callerJid.split('@')[0]) || 'Client';
+        const direction = callData.direction || 'incoming';
+        const status = callData.status || 'connected';
+        const duration = typeof callData.duration === 'number' ? callData.duration : (status === 'connected' ? 45 : 0);
+        const timestamp = callData.timestamp || Date.now();
+        const sql = `
+      INSERT INTO whatsapp_calls (id, account_id, caller_jid, caller_name, direction, status, duration, is_video, is_group, timestamp, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime(? / 1000, 'unixepoch'))
+    `;
+        await this.messageRepo.query(sql, [
+            callId,
+            accountId,
+            callerJid,
+            callerName,
+            direction,
+            status,
+            duration,
+            callData.isVideo ? 1 : 0,
+            callData.isGroup ? 1 : 0,
+            timestamp,
+            timestamp,
+        ]);
+        const created = {
+            id: callId,
+            accountId,
+            callerJid,
+            callerName,
+            direction,
+            status,
+            duration,
+            timestamp,
+        };
+        if (this.baileysClientFactory) {
+            this.baileysClientFactory.broadcast('default-tenant', accountId, 'whatsapp:call_new', created);
+            this.baileysClientFactory.broadcast('default-tenant', accountId, 'whatsapp:analytics_update', { type: 'call', accountId });
+        }
+        return created;
+    }
+    async simulateLiveEvent(accountId, type) {
+        const contacts = await this.contactRepo.find({ take: 10 });
+        const contact = contacts[Math.floor(Math.random() * contacts.length)] || {
+            id: `91987654${Math.floor(1000 + Math.random() * 9000)}@s.whatsapp.net`,
+            name: 'Priya Sharma',
+            phoneNumber: '+91 98765 43210',
+        };
+        if (type === 'call') {
+            const directions = ['incoming', 'outgoing'];
+            const statuses = ['connected', 'missed', 'rejected'];
+            const dir = directions[Math.floor(Math.random() * directions.length)];
+            const stat = statuses[Math.floor(Math.random() * statuses.length)];
+            const dur = stat === 'connected' ? Math.floor(20 + Math.random() * 180) : 0;
+            return this.logCall(accountId, {
+                callerJid: contact.id,
+                callerName: contact.name,
+                direction: dir,
+                status: stat,
+                duration: dur,
+                timestamp: Date.now(),
+            });
+        }
+        else {
+            const texts = [
+                'Hi, could you send the latest telemarketing campaign results?',
+                'Client has confirmed the contract renewal!',
+                'Can we schedule an outbound call wave for this afternoon?',
+                'Lead qualification completed for 25 prospects.',
+                'Great progress on the outreach campaign today.'
+            ];
+            const text = texts[Math.floor(Math.random() * texts.length)];
+            const fromMe = Math.random() > 0.5;
+            const msgId = `MSG_LIVE_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+            const ts = Date.now();
+            await this.messageRepo.query(`
+        INSERT INTO whatsapp_messages (id, account_id, chat_jid, sender_jid, sender_name, from_me, text, media_type, status, timestamp, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NULL, 'delivered', ?, datetime(? / 1000, 'unixepoch'))
+      `, [
+                msgId,
+                accountId,
+                contact.id,
+                fromMe ? `${accountId}@s.whatsapp.net` : contact.id,
+                contact.name,
+                fromMe ? 1 : 0,
+                text,
+                ts,
+                ts,
+            ]);
+            const newMsg = {
+                id: msgId,
+                accountId,
+                chatJid: contact.id,
+                fromMe,
+                text,
+                timestamp: ts,
+                status: 'delivered',
+            };
+            if (this.baileysClientFactory) {
+                this.baileysClientFactory.broadcast('default-tenant', accountId, 'whatsapp:message_new', newMsg);
+                this.baileysClientFactory.broadcast('default-tenant', accountId, 'whatsapp:analytics_update', { type: 'message', accountId });
+            }
+            return newMsg;
+        }
+    }
 };
 exports.WhatsappWebService = WhatsappWebService;
 exports.WhatsappWebService = WhatsappWebService = WhatsappWebService_1 = __decorate([
@@ -1033,10 +1348,13 @@ exports.WhatsappWebService = WhatsappWebService = WhatsappWebService_1 = __decor
     __param(1, (0, typeorm_1.InjectRepository)(whatsapp_contact_entity_1.WhatsappContactEntity)),
     __param(2, (0, typeorm_1.InjectRepository)(whatsapp_message_entity_1.WhatsappMessageEntity)),
     __param(3, (0, typeorm_1.InjectRepository)(whatsapp_account_entity_1.WhatsappAccountEntity)),
-    __param(6, (0, common_1.Optional)()),
-    __param(6, (0, common_1.Inject)(cache_module_1.REDIS_CLIENT)),
+    __param(4, (0, common_1.Optional)()),
+    __param(4, (0, typeorm_1.InjectRepository)(whatsapp_call_entity_1.WhatsappCallEntity)),
     __param(7, (0, common_1.Optional)()),
+    __param(7, (0, common_1.Inject)(cache_module_1.REDIS_CLIENT)),
+    __param(8, (0, common_1.Optional)()),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,
         typeorm_2.Repository,

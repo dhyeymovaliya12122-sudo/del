@@ -55,9 +55,13 @@ let GlobalHttpExceptionFilter = class GlobalHttpExceptionFilter {
         }
         const isProd = process.env.NODE_ENV === 'production';
         this.logger.error(`${request.method} ${request.url} → ${status}: ${errorMessage}`, exception instanceof Error ? exception.stack : undefined);
-        const clientMessage = isProd && status >= common_1.HttpStatus.INTERNAL_SERVER_ERROR
+        let clientMessage = isProd && status >= common_1.HttpStatus.INTERNAL_SERVER_ERROR
             ? 'An internal server error occurred.'
             : errorMessage;
+        if (!isProd && typeof clientMessage === 'string') {
+            clientMessage = clientMessage.replace(/[A-Za-z]:\\[\w\\\.-]+/g, '[redacted_path]');
+            clientMessage = clientMessage.replace(/(?:\/[a-zA-Z0-9_\.-]+){2,}/g, '[redacted_path]');
+        }
         response.status(status).json({
             statusCode: status,
             error: errorName || (status >= 500 ? 'Internal Server Error' : 'Error'),

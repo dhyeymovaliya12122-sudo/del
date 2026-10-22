@@ -65,7 +65,8 @@ export class AccountIsolationGuard implements CanActivate {
       this.logger.error(`Database error verifying account ${accountId}: ${err.message}`);
     }
     if (!account) {
-      throw new BadRequestException(`Account with id "${accountId}" does not exist.`);
+      this.logger.warn(`Account lookup failed for id: ${accountId}`);
+      throw new BadRequestException('The specified account does not exist or is not accessible.');
     }
 
     // SUPER_ADMIN may access any account
